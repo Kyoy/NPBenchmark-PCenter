@@ -310,9 +310,6 @@ bool Solver::optimize(Solution &sln, ID workerId) {
     sln.maxLength = *maxPosition_s;
 
 
-
-
-
     Log(LogSwitch::Szx::Framework) << "worker " << workerId << " ends." << endl;
     return status;
 }
