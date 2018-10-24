@@ -746,6 +746,24 @@ public:
     }
 };
 
+
+class Floyd {
+public:
+    static void floyd(std::vector <std::vector<int>> &graph) {
+        int nodeNum = (int)graph.size();
+        for (int mid = 0; mid < nodeNum; ++mid) {
+            for (int src = 0; src < nodeNum; ++src) {
+                for (int dst = 0; dst < nodeNum; ++dst) {
+                    int distance = graph[src][mid] + graph[mid][dst];
+                    if (distance < graph[src][dst]) {
+                        graph[src][dst] = distance;
+                    }
+                }
+            }
+        }
+    }
+};
+
 }
 
 

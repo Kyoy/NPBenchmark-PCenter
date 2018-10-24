@@ -66,11 +66,11 @@ int main(int argc, char *argv[]) {
                 error |= CheckerFlag::CenterRepeatedError;
         }
     }
-    CheckConstraints check(input, output);
-    check.generateNum();
-    maxLength = check.generateMaxLength();
+
+    CheckConstraints checker(input, output);
+    maxLength = checker.maxLength;
 
     int returnCode = (error == 0) ? maxLength: ~error;
-    cout << "returnCode: " << returnCode << endl;
+    cout << returnCode << endl;
     return returnCode;
 }

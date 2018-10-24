@@ -3,62 +3,71 @@
 
 #include "CheckConstraints.h"
 
+using namespace std;
 
 
 CheckConstraints::CheckConstraints(const pb::PCenter::Input &input_s, const pb::PCenter::Output &output_s) {
     input = input_s;
     output = output_s;
+    generateNum();
+    generateGraph();
+    generateMaxLength();
 }
-
-
 
 int CheckConstraints::generateNum() { // 获取节点数
-    vector<int> vec;
-    for (auto edge = input.graph().edges().begin(); edge != input.graph().edges().end(); ++edge) {
-        vec.push_back(edge->source());
-        vec.push_back(edge->target());
+    for (auto edge = input.graph().edges().begin(); edge != input.graph().edges().end(); ++edge) { // 所有边中节点编号的最大值即为节点数
+        if (edge->source() > nodeNum) {
+            nodeNum = edge->source();
+        }
+        if (edge->target() > nodeNum) {
+            nodeNum = edge->target();
+        }
     }
-    auto maxPosition = max_element(vec.begin(), vec.end());
-    numOfNodes = *maxPosition;
-    return numOfNodes;
+    return nodeNum;
 }
 
-vector<vector<int>> CheckConstraints::generateGraph() { // 生成临接表
-    vector<vector<int>> G(numOfNodes, vector<int>(numOfNodes, INF));
-    for (auto edge = input.graph().edges().begin(); edge != input.graph().edges().end(); ++edge) {
-        int source = edge->source();
-        int target = edge->target();
-        int length = edge->length();
-        G[source - 1][target - 1] = length;
-        G[target - 1][source - 1] = length;
+vector<vector<int>> CheckConstraints::generateGraph() { 
+    adjMartrix.resize(nodeNum, vector<int>(nodeNum, INF));
+    for (auto edge = input.graph().edges().begin(); edge != input.graph().edges().end(); ++edge) { // 生成算例的临接矩阵
+        adjMartrix[edge->source() - 1][edge->target() - 1] = edge->length();
+        adjMartrix[edge->target() - 1][edge->source() - 1] = edge->length();
     }
-    for (int i = 0; i < numOfNodes; ++i) {
-        G[i][i] = 0;
+    for (int i = 0; i < nodeNum; ++i) {
+        adjMartrix[i][i] = 0;
     }
-    return G;
+    floyd(adjMartrix); // 利用floyd算法生成完全图的临接矩阵
+    return adjMartrix;
 }
 
 int CheckConstraints::generateMaxLength() {
-    vector<vector<int>> G = generateGraph();
-    numOfCenters = input.centernum();
-    vector<int> centers;
-    vector<vector<int>> distance(numOfCenters, vector<int>(numOfNodes)); // 所有服务节点到其余节点的距离
-    for (int i = 0; i < numOfCenters; ++i) {
-        centers.push_back(output.centers(i));
-        distance[i] = Dijkstra(numOfNodes, output.centers(i), G);
-    }
-    vector<int> serveLength;
-    for (int i = 0; i < numOfNodes; ++i) {
-        if (find(centers.begin(), centers.end(), i + 1) == centers.end()) { // 只处理用户节点
-            vector<int> length(numOfCenters);
-            for (int j = 0; j < numOfCenters; ++j) {
-                length[j] = distance[j][i];
+    centerNum = input.centernum();
+    vector<int> serverLengthList;
+    for (int i = 0; i < nodeNum; ++i) {
+        int serveLength = INF; // 节点的服务边长度
+        for (int j = 0; j < centerNum; ++j) {
+            int k = output.centers(j);
+            if (serveLength > adjMartrix[i][k]) {
+                serveLength = adjMartrix[i][k];
             }
-            auto minPosition = min_element(length.begin(), length.end());
-            serveLength.push_back(*minPosition); // 服务边的长度
         }
+        serverLengthList.push_back(serveLength);
     }
-    auto maxPosition = max_element(serveLength.begin(), serveLength.end()); // 服务边中的最大值
-    maxLength = *maxPosition;
+    auto maxPosition_s = max_element(serverLengthList.begin(), serverLengthList.end());
+    maxLength = *maxPosition_s; // 所有服务边中的最大值
     return maxLength;
 }
+
+void CheckConstraints::floyd(vector<vector<int>> &graph) {
+    int nodeNum = (int)graph.size();
+    for (int mid = 0; mid < nodeNum; ++mid) {
+        for (int src = 0; src < nodeNum; ++src) {
+            for (int dst = 0; dst < nodeNum; ++dst) {
+                int distance = graph[src][mid] + graph[mid][dst];
+                if (distance < graph[src][dst]) {
+                    graph[src][dst] = distance;
+                }
+            }
+        }
+    }
+}
+

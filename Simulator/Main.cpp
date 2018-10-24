@@ -9,9 +9,9 @@ int main() {
     //Simulator::initDefaultEnvironment();
 
     Simulator sim;
-    //sim.debug();
+    sim.debug();
     //sim.benchmark(1);
-    sim.parallelBenchmark(1);
+    //sim.parallelBenchmark(1);
     //sim.generateInstance();
 
     return 0;

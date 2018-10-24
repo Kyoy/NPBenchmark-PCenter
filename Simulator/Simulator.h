@@ -91,7 +91,7 @@ public:
         
     }
 
-    std::vector<int> Simulator::SplitString_s(const std::string& str, const char* separator);
+    std::vector<int> Simulator::splitString(const std::string& str, const char* separator);
     #pragma endregion Method
 
     #pragma region Field

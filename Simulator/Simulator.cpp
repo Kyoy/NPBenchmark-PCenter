@@ -16,8 +16,6 @@
 using namespace std;
 
 
-
-
 namespace szx {
 
 void Simulator::initDefaultEnvironment() {
@@ -101,7 +99,7 @@ void Simulator::run(const String &envPath) {
 void Simulator::debug() {
     Task task;
     task.instSet = "";
-    task.instId = "pmed2";
+    task.instId = "pmed3";
     //task.randSeed = "1500972793";
     task.randSeed = to_string(Random::generateSeed());
     task.timeout = "180";
@@ -143,8 +141,7 @@ void Simulator::benchmark(int repeat) {
     }
 }
 
-void Simulator::parallelBenchmark(int repeat) { //ÏÖÔÚµÄÎÊÌâ£º1¡¢²¢ĞĞÊä³ö²úÉú»ìÂÒ
-
+void Simulator::parallelBenchmark(int repeat) { 
     Task task;
     task.instSet = "";
     //task.timeout = "180";
@@ -179,8 +176,8 @@ void Simulator::parallelBenchmark(int repeat) { //ÏÖÔÚµÄÎÊÌâ£º1¡¢²¢ĞĞÊä³ö²úÉú»ìÂ
 void Simulator::generateInstance(const string location, const int num) {
     Problem::Input input;
     string str;
-    int line;
-    vector<int> vec;
+    int edgeNum;
+    vector<int> line;
     //location = "D:\\vs-c\\IOstream\\instance\\pmed1.txt";
     ifstream infile(location);
     if (!infile.is_open()) { 
@@ -188,16 +185,16 @@ void Simulator::generateInstance(const string location, const int num) {
         return;
     }
     getline(infile, str);
-    vec = SplitString_s(str, " ");
-    input.set_centernum(vec[2]);
-    line = vec[1];
+    line = splitString(str, " ");
+    input.set_centernum(line[2]);
+    edgeNum = line[1];
     while (!infile.eof()) {
         getline(infile, str);
-        vec = SplitString_s(str, " ");
+        line = splitString(str, " ");
         auto &edge(*input.mutable_graph()->add_edges());
-        edge.set_source(vec[0]);
-        edge.set_target(vec[1]);
-        edge.set_length(vec[2]);
+        edge.set_source(line[0]);
+        edge.set_target(line[1]);
+        edge.set_length(line[2]);
     }
     ostringstream path;
     path << InstanceDir() << "pmed"<< num << ".json";
@@ -205,20 +202,19 @@ void Simulator::generateInstance(const string location, const int num) {
     //cout << "done" << endl;
 }
 
-vector<int> Simulator::SplitString_s(const string& str, const char* separator) {
-    vector<int> vec;
+vector<int> Simulator::splitString(const string& str, const char* separator) {
+    vector<int> charVector;
     char *input = (char *)str.c_str();
     char *next_token = nullptr;
     char *p = strtok_s(input, separator, &next_token);
     int a;
     while (p != NULL) {
         sscanf_s(p, "%d", &a);
-        vec.push_back(a);
+        charVector.push_back(a);
         p = strtok_s(NULL, separator, &next_token);
     }
-    return vec;
+    return charVector;
 }
-
 
 }
 

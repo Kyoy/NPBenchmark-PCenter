@@ -10,8 +10,6 @@
 
 #include <cmath>
 
-#include "../Checker/CheckConstraints.h"
-
 
 using namespace std;
 
@@ -173,7 +171,7 @@ bool Solver::solve() {
 
     Log(LogSwitch::Szx::Framework) << "collect best result among all workers." << endl;
     int bestIndex = -1;
-    Length bestValue = INF;
+    Length bestValue = 100000;
     for (int i = 0; i < workerNum; ++i) {
         if (!success[i]) { continue; }
         Log(LogSwitch::Szx::Framework) << "worker " << i << " got " << solutions[i].maxLength << endl;
@@ -254,60 +252,55 @@ bool Solver::check(Length &checkerObj) const {
 }
 
 void Solver::init() {
-    
+    int nodeNum = 0;
+    for (auto edge = input.graph().edges().begin(); edge != input.graph().edges().end(); ++edge) { // 所有边中节点编号的最大值即为节点数
+        if (edge->source() > nodeNum) {
+            nodeNum = edge->source();
+        }
+        if (edge->target() > nodeNum) {
+            nodeNum = edge->target();
+        }
+    }
+    aux.nodeNum = nodeNum; 
+    aux.edgeNum = input.graph().edges().size();
+    aux.centerNum = input.centernum();
+
+    aux.adjMartrix.resize(aux.nodeNum, List<int>(aux.nodeNum, INF));
+    for (auto edge = input.graph().edges().begin(); edge != input.graph().edges().end(); ++edge) { // 生成算例的临接矩阵
+        aux.adjMartrix[edge->source() - 1][edge->target() - 1] = edge->length();
+        aux.adjMartrix[edge->target() - 1][edge->source() - 1] = edge->length();
+    }
+    for (int i = 0; i < aux.nodeNum; ++i) {
+        aux.adjMartrix[i][i] = 0;
+    }
+    Floyd::floyd(aux.adjMartrix); // 利用floyd算法生成完全图的临接矩阵
 }
 
 bool Solver::optimize(Solution &sln, ID workerId) {
     Log(LogSwitch::Szx::Framework) << "worker " << workerId << " starts." << endl;
-    vector<int> vec;
-    for (auto edge = input.graph().edges().begin(); edge != input.graph().edges().end(); ++edge) {
-        vec.push_back(edge->source());
-        vec.push_back(edge->target());
-    }
-    auto maxPosition = max_element(vec.begin(), vec.end());
-    ID nodeNum = *maxPosition;
-    ID edgeNum = input.graph().edges().size();
-    ID centerNum = input.centernum();
-
     bool status = true;
     sln.maxLength = 0;
 
     // TODO[0]: replace the following random assignment with your own algorithm.
-    vector<vector<int>> G(nodeNum, vector<int>(nodeNum, INF));
-    for (auto edge = input.graph().edges().begin(); edge != input.graph().edges().end(); ++edge) {
-        int source = edge->source();
-        int target = edge->target();
-        int length = edge->length();
-        G[source - 1][target - 1] = length;
-        G[target - 1][source - 1] = length;
-    }
-    for (int i = 0; i < nodeNum; ++i) {
-        G[i][i] = 0;
-    }
-    vector<int> centers;
-    for (int e = 0; !timer.isTimeOut() && (e < centerNum); ++e) {
-        int index = rand.pick(0, nodeNum);
+    for (int e = 0; !timer.isTimeOut() && (e < aux.centerNum); ++e) { // 随机生成服务节点p
+        int index = rand.pick(0, aux.nodeNum);
         sln.add_centers(index);
-        centers.push_back(index);
     }
-    //cout << sln.centers().size() << endl;
-    vector<vector<int>> distance(centerNum, vector<int>(nodeNum)); // 所有服务节点到其余节点的距离
-    for (int i = 0; i < centerNum; ++i) {
-        distance[i] = CheckConstraints::Dijkstra(nodeNum, sln.centers(i), G);
-    }
-    vector<int> serveLength;
-    for (int i = 0; i < nodeNum; ++i) {
-        if (find(centers.begin(), centers.end(), i + 1) == centers.end()) { // 只处理用户节点
-            vector<int> length(centerNum);
-            for (int j = 0; j < centerNum; ++j) {
-                length[j] = distance[j][i];
+
+    vector<int> serverLengthList; // 存储所有服务边
+    serverLengthList.reserve(aux.nodeNum);
+    for (int i = 0; i < aux.nodeNum; ++i) {
+        int serveLength = INF; // 节点的服务边长度
+        for (int j = 0; j < aux.centerNum; ++j) {
+            int k = sln.centers(j);
+            if (serveLength > aux.adjMartrix[i][k]) {
+                serveLength = aux.adjMartrix[i][k];
             }
-            auto minPosition = min_element(length.begin(), length.end());
-            serveLength.push_back(*minPosition); // 服务边的长度
         }
+        serverLengthList.push_back(serveLength); 
     }
-    auto maxPosition_s = max_element(serveLength.begin(), serveLength.end()); // 服务边中的最大值
-    sln.maxLength = *maxPosition_s;
+    auto maxPosition_s = max_element(serverLengthList.begin(), serverLengthList.end());
+    sln.maxLength = *maxPosition_s; // 所有服务边中的最大值，即问题的输出
 
 
     Log(LogSwitch::Szx::Framework) << "worker " << workerId << " ends." << endl;

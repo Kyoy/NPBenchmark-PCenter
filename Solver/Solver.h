@@ -24,6 +24,8 @@
 
 namespace szx {
 
+const int INF = 1000000000;
+
 class Solver {
     #pragma region Type
 public:
@@ -206,7 +208,10 @@ public:
     Problem::Output output;
 
     struct { // auxiliary data for solver.
-        List<List<bool>> isCompatible; // isCompatible[f][g] is true if flight f is compatible with gate g.
+        List<List<int>> adjMartrix; 
+        ID nodeNum;
+        ID edgeNum;
+        ID centerNum;
     } aux;
 
     Environment env;
